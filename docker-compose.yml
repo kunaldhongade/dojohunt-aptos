@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: dojohunt-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: dojohunt
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - dojohunt-network
+
+  # Node.js Executor Image Builder (optional service for building the executor image)
+  executor-builder:
+    build:
+      context: ./docker/executor
+      dockerfile: Dockerfile
+    image: dojohunt-node-executor:latest
+    container_name: dojohunt-executor-builder
+    command: echo "Executor image built successfully"
+    networks:
+      - dojohunt-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  dojohunt-network:
+    driver: bridge

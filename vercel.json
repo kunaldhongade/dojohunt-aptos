@@ -1,0 +1,20 @@
+{
+    "buildCommand": "pnpm build",
+    "devCommand": "pnpm dev",
+    "installCommand": "pnpm install",
+    "framework": "nextjs",
+    "regions": [
+        "iad1"
+    ],
+    "functions": {
+        "app/api/challenges/**/run/route.ts": {
+            "maxDuration": 10
+        },
+        "app/api/challenges/**/submit/route.ts": {
+            "maxDuration": 10
+        }
+    },
+    "env": {
+        "USE_DOCKER_EXECUTOR": "false"
+    }
+}

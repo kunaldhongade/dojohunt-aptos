@@ -1,0 +1,218 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Neutral dark theme with purple accents */
+    --background: 222 47% 11%;
+    --foreground: 0 0% 98%;
+    --card: 222 47% 13%;
+    --card-foreground: 0 0% 98%;
+    --popover: 222 47% 13%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 270 91% 65%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 270 91% 65%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 270 91% 65%;
+    --radius: 1rem;
+    
+    /* Purple gradient colors for buttons and accents */
+    --purple-50: 270 100% 98%;
+    --purple-100: 270 100% 95%;
+    --purple-200: 270 95% 90%;
+    --purple-300: 270 90% 80%;
+    --purple-400: 270 85% 70%;
+    --purple-500: 270 80% 60%;
+    --purple-600: 270 75% 50%;
+    --purple-700: 270 70% 40%;
+    --purple-800: 270 65% 30%;
+    --purple-900: 270 60% 20%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, hsl(222, 47%, 11%) 0%, hsl(222, 47%, 13%) 100%);
+    min-height: 100vh;
+  }
+  
+  .font-montserrat {
+    font-family: var(--font-montserrat), 'Montserrat', sans-serif;
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+  
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(30px) saturate(200%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  }
+  
+  .glass-light {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  /* Purple glow effects */
+  .purple-glow {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4),
+                0 0 40px rgba(168, 85, 247, 0.2),
+                0 0 60px rgba(168, 85, 247, 0.1);
+  }
+  
+  .purple-glow-strong {
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.6),
+                0 0 60px rgba(168, 85, 247, 0.4),
+                0 0 90px rgba(168, 85, 247, 0.2);
+  }
+  
+  /* Gradient backgrounds */
+  .gradient-purple {
+    background: linear-gradient(135deg, hsl(270, 91%, 65%) 0%, hsl(280, 80%, 60%) 100%);
+  }
+  
+  .gradient-purple-dark {
+    background: linear-gradient(135deg, hsl(270, 70%, 40%) 0%, hsl(280, 65%, 35%) 100%);
+  }
+  
+  .gradient-radial {
+    background: radial-gradient(circle at center, hsl(270, 91%, 65%, 0.3) 0%, transparent 70%);
+  }
+  
+  /* Animated gradient */
+  .animated-gradient {
+    background: linear-gradient(-45deg, hsl(270, 91%, 65%), hsl(280, 80%, 60%), hsl(260, 85%, 55%), hsl(270, 91%, 65%));
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+  
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* Text gradients */
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(270, 91%, 75%) 0%, hsl(280, 80%, 70%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .text-gradient-strong {
+    background: linear-gradient(135deg, hsl(270, 91%, 85%) 0%, hsl(280, 80%, 80%) 50%, hsl(260, 85%, 75%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 40px rgba(168, 85, 247, 0.6);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 3s infinite;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Disable animations for dropdown menus with no-animation class */
+[data-radix-dropdown-menu-content].no-animation,
+[data-radix-dropdown-menu-content].no-animation[data-state],
+[data-radix-dropdown-menu-content].no-animation[data-state="open"],
+[data-radix-dropdown-menu-content].no-animation[data-state="closed"] {
+  animation: none !important;
+  transition: none !important;
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+  transform: none !important;
+  opacity: 1 !important;
+}

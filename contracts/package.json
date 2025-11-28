@@ -1,0 +1,18 @@
+{
+  "name": "dojohunt-contracts",
+  "version": "1.0.0",
+  "description": "Move smart contracts for DojoHunt staking platform on Aptos",
+  "scripts": {
+    "compile": "aptos move compile",
+    "test": "aptos move test",
+    "deploy:testnet": "aptos move publish --named-addresses dojohunt=$APTOS_ACCOUNT_ADDRESS --profile testnet",
+    "deploy:mainnet": "aptos move publish --named-addresses dojohunt=$APTOS_ACCOUNT_ADDRESS --profile mainnet"
+  },
+  "keywords": [
+    "staking",
+    "move",
+    "aptos"
+  ],
+  "author": "",
+  "license": "MIT"
+}
