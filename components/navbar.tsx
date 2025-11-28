@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +12,7 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { LogOut, Menu, X } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -193,26 +193,18 @@ export function Navbar({
                 <>
                   {!isCompact && (
                     <div className="hidden md:flex gap-2">
-                      <Link href="/auth/signup">
+                      <Link href="/auth/signin">
                         <Button
                           className="bg-white text-gray-900 hover:bg-white/90 rounded-xl px-4 py-2 text-sm font-semibold font-montserrat shadow-lg transition-all duration-200"
                         >
                           Sign In
                         </Button>
                       </Link>
-                      <Link href="/auth/signin">
-                        <Button
-                          variant="outline"
-                          className="bg-gray-900/80 border-gray-700 text-white hover:bg-gray-800/80 rounded-xl px-4 py-2 text-sm font-semibold font-montserrat backdrop-blur-sm"
-                        >
-                          Log In
-                        </Button>
-                      </Link>
                     </div>
                   )}
                   {isCompact && (
                     <>
-                      <Link href="/auth/signup">
+                      <Link href="/auth/signin">
                         <Button
                           size="sm"
                           className="h-7 px-3 text-xs bg-white text-gray-900 hover:bg-white/90 rounded-lg font-montserrat font-medium"
@@ -268,21 +260,12 @@ export function Navbar({
             {!isLoggedIn && (
               <div className="flex flex-col gap-2 pt-4 border-t border-white/10">
                 <Link
-                  href="/auth/signup"
+                  href="/auth/signin"
                   className="w-full"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <Button className="w-full bg-white text-gray-900 hover:bg-white/90 rounded-xl font-montserrat font-semibold">
                     Sign In
-                  </Button>
-                </Link>
-                <Link
-                  href="/auth/signin"
-                  className="w-full"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Button variant="outline" className="w-full bg-gray-900/80 border-gray-700 text-white hover:bg-gray-800/80 rounded-xl font-montserrat font-semibold">
-                    Log In
                   </Button>
                 </Link>
               </div>

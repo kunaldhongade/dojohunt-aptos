@@ -130,7 +130,7 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <Link href="/auth/signup">
+                  <Link href="/auth/signin">
                     <Button
                       size="lg"
                       className="bg-white text-gray-900 hover:bg-white/90 rounded-xl px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold font-montserrat shadow-lg transition-all duration-300 hover:scale-105"
@@ -831,7 +831,7 @@ export default function Home() {
                 </Button>
               </Link>
             ) : (
-              <Link href="/auth/signup">
+              <Link href="/auth/signin">
                 <Button
                   size="lg"
                   className="bg-white text-gray-900 hover:bg-white/90 rounded-xl px-12 py-8 text-lg md:text-xl font-semibold shadow-xl transition-all duration-300 hover:scale-105"
