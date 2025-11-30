@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "Move smart contracts for DojoHunt staking platform on Aptos",
   "scripts": {
-    "compile": "aptos move compile",
+    "compile": "aptos move compile --named-addresses dojohunt=0xca10b0176c34f9a8315589ff977645e04497814e9753d21f7d7e7c3d83aa7b57",
     "test": "aptos move test",
-    "deploy:testnet": "aptos move publish --named-addresses dojohunt=$APTOS_ACCOUNT_ADDRESS --profile testnet",
-    "deploy:mainnet": "aptos move publish --named-addresses dojohunt=$APTOS_ACCOUNT_ADDRESS --profile mainnet"
+    "deploy": "node scripts/deploy.js",
+    "deploy:testnet": "node scripts/deploy.js --network testnet",
+    "deploy:mainnet": "node scripts/deploy.js --network mainnet",
+    "deploy:upgrade": "node scripts/deploy.js --network testnet --upgrade",
+    "deploy:new": "node scripts/deploy.js --network testnet --new",
+    "publish": "aptos move publish --named-addresses dojohunt=0xca10b0176c34f9a8315589ff977645e04497814e9753d21f7d7e7c3d83aa7b57 --private-key \"$TOKEN_OWNER_PRIVATE_KEY\" --profile default --assume-yes"
   },
   "keywords": [
     "staking",
@@ -14,5 +18,9 @@
     "aptos"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@aptos-labs/ts-sdk": "^5.1.5",
+    "dotenv": "^17.2.3"
+  }
 }

@@ -169,6 +169,7 @@ module dojohunt::dojohunt_token {
     }
 
     /// Get metadata
+    #[view]
     public fun get_metadata(): (
         String,
         String,

@@ -34,6 +34,16 @@ module dojohunt::dojohunt_staking {
         is_active: bool,
     }
 
+    /// Stake info for view functions (return type)
+    struct StakeInfo has copy, drop {
+        wallet_address: address,
+        amount: u64,
+        start_time: u64,
+        end_time: u64,
+        challenges_completed: u64,
+        is_active: bool,
+    }
+
     /// Challenge completion tracking
     struct ChallengeCompletions has key {
         completions: std::table::Table<u64, bool>,
@@ -285,7 +295,9 @@ module dojohunt::dojohunt_staking {
         };
     }
 
+
     /// Get stake information
+   #[view]
     public fun get_stake(
         user: address,
     ): (u64, u64, u64, bool, u64, u64) acquires StakingPool {
@@ -323,6 +335,7 @@ module dojohunt::dojohunt_staking {
     }
 
     /// Get contract balance
+ #[view]
     public fun get_contract_balance(): u64 acquires StakingPool {
         let pool = borrow_global<StakingPool>(@dojohunt);
         if (option::is_some(&pool.signer_cap)) {
@@ -330,6 +343,65 @@ module dojohunt::dojohunt_staking {
         } else {
             0
         }
+    }
+
+    /// Get all active stakes (returns vector of StakeInfo)
+    /// Note: Without staker_addresses tracking, this returns empty vector
+    /// Use get_stake(address) for individual stake queries
+     #[view]
+    public fun get_all_active_stakes(): vector<StakeInfo> {
+        // Cannot iterate over Table without keys, return empty vector
+        std::vector::empty<StakeInfo>()
+    }
+
+    /// Get all stakes including inactive (returns vector of StakeInfo)
+    /// Note: Without staker_addresses tracking, this returns empty vector
+    /// Use get_stake(address) for individual stake queries
+     #[view]
+    public fun get_all_stakes(): vector<StakeInfo> {
+        // Cannot iterate over Table without keys, return empty vector
+        std::vector::empty<StakeInfo>()
+    }
+
+    /// Get all addresses that have stakes
+    /// Note: Without staker_addresses tracking, this returns empty vector
+     #[view]
+    public fun get_all_stakers(): vector<address> {
+        // Cannot iterate over Table without keys, return empty vector
+        std::vector::empty<address>()
+    }
+
+    /// Get pool statistics
+     #[view]
+    public fun get_pool_stats(): (u64, u64, u64) acquires StakingPool {
+        let pool = borrow_global<StakingPool>(@dojohunt);
+        // Cannot count stakers without tracking, return 0
+        (pool.total_staked, pool.total_fees, 0)
+    }
+
+    /// Get user's completed challenges (returns vector of challenge IDs)
+    /// Note: Without challenge_ids tracking, this returns empty vector
+    /// Use is_challenge_completed(address, u64) to check individual challenges
+     #[view]
+    public fun get_user_completed_challenges(
+        _user: address,
+    ): vector<u64> {
+        // Cannot iterate over Table without keys, return empty vector
+        std::vector::empty<u64>()
+    }
+
+    /// Get count of completed challenges for a user
+    /// Note: Returns the count from the user's stake, not from ChallengeCompletions table
+     #[view]
+    public fun get_user_challenges_count(
+        user: address,
+    ): u64 acquires StakingPool {
+        let pool = borrow_global<StakingPool>(@dojohunt);
+        if (!std::table::contains(&pool.stakes, user)) {
+            return 0
+        };
+        let stake_ref = std::table::borrow(&pool.stakes, user);
+        stake_ref.challenges_completed
     }
 
     /// Withdraw fees (owner only)
