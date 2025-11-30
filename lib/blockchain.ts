@@ -230,13 +230,27 @@ export async function completeChallengeOnChain(
  */
 export async function getStakeInfo(walletAddress: string) {
   try {
+    // Check if module address is configured
+    if (!STAKING_MODULE_ADDRESS || STAKING_MODULE_ADDRESS.trim() === "") {
+      console.error("Get stake info error: STAKING_MODULE_ADDRESS is not configured");
+      return {
+        success: false,
+        error: "Staking module address is not configured",
+      };
+    }
+
     const aptos = getAptosClient();
-    const moduleAddress = toAccountAddress(STAKING_MODULE_ADDRESS || "0x1");
+    const moduleAddress = toAccountAddress(STAKING_MODULE_ADDRESS);
     
-    const resource = await aptos.getAccountResource({
-      accountAddress: moduleAddress,
-      resourceType: `${STAKING_MODULE_ADDRESS}::${STAKING_MODULE_NAME}::StakingPool`,
-    });
+    try {
+      const resource = await aptos.getAccountResource({
+        accountAddress: moduleAddress,
+        resourceType: `${STAKING_MODULE_ADDRESS}::${STAKING_MODULE_NAME}::StakingPool`,
+      });
+    } catch (resourceError) {
+      // Resource might not exist, continue to view function
+      console.log("Resource not found, continuing to view function");
+    }
 
     // Call view function to get stake info
     const stakeInfo = await aptos.view({
@@ -313,8 +327,17 @@ export async function isChallengeCompletedOnChain(
  */
 export async function getTokenBalance(walletAddress: string) {
   try {
+    // Check if module address is configured
+    if (!TOKEN_MODULE_ADDRESS || TOKEN_MODULE_ADDRESS.trim() === "") {
+      console.error("Get token balance error: TOKEN_MODULE_ADDRESS is not configured");
+      return {
+        success: false,
+        error: "Token module address is not configured",
+      };
+    }
+
     const aptos = getAptosClient();
-    const moduleAddress = toAccountAddress(TOKEN_MODULE_ADDRESS || "0x1");
+    const moduleAddress = toAccountAddress(TOKEN_MODULE_ADDRESS);
     
     const balance = await aptos.view({
       function: `${TOKEN_MODULE_ADDRESS}::${TOKEN_MODULE_NAME}::balance_of`,
@@ -379,8 +402,30 @@ export async function getTokenInfo() {
  */
 export async function getTokenMetadata() {
   try {
+    // Check if module address is configured
+    if (!TOKEN_MODULE_ADDRESS || TOKEN_MODULE_ADDRESS.trim() === "") {
+      console.error("Get token metadata error: TOKEN_MODULE_ADDRESS is not configured");
+      // Return default metadata
+      return {
+        success: false,
+        error: "Token module address is not configured",
+        name: "TSKULL",
+        symbol: "TSKULL",
+        decimals: 8,
+        logoURI: "",
+        website: "",
+        description: "",
+        metadataURI: "",
+        twitter: "",
+        discord: "",
+        telegram: "",
+        github: "",
+        documentation: "",
+      };
+    }
+
     const aptos = getAptosClient();
-    const moduleAddress = toAccountAddress(TOKEN_MODULE_ADDRESS || "0x1");
+    const moduleAddress = toAccountAddress(TOKEN_MODULE_ADDRESS);
     
     const metadata = await aptos.view({
       function: `${TOKEN_MODULE_ADDRESS}::${TOKEN_MODULE_NAME}::get_metadata`,

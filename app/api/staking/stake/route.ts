@@ -72,9 +72,39 @@ export async function POST(request: NextRequest) {
     let user;
     try {
       usersCollection = await getCollection("users");
-      user = await usersCollection.findOne({
-        _id: new ObjectId(userId),
-      });
+      
+      // Try to find user by ID first
+      try {
+        user = await usersCollection.findOne({
+          _id: new ObjectId(userId),
+        });
+      } catch (idError) {
+        console.log("[STAKING] Invalid ObjectId format, trying alternative lookup");
+        // If ObjectId conversion fails, try as string
+        user = await usersCollection.findOne({
+          _id: userId,
+        });
+      }
+      
+      // If still not found, try to get user from session email (fallback)
+      if (!user) {
+        const { getServerSession } = require("next-auth");
+        const { authOptions } = require("@/lib/auth-options");
+        const session = await getServerSession(authOptions);
+        
+        if (session?.user?.email) {
+          user = await usersCollection.findOne({
+            email: session.user.email,
+          });
+          
+          if (user) {
+            console.log("[STAKING] Found user by email, ID mismatch:", {
+              sessionId: userId,
+              dbId: user._id.toString(),
+            });
+          }
+        }
+      }
     } catch (dbError) {
       console.error("[STAKING] Error accessing users collection:", dbError);
       return NextResponse.json(
@@ -84,8 +114,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (!user) {
+      console.error("[STAKING] User not found in database:", {
+        userId,
+        userIdType: typeof userId,
+      });
       return NextResponse.json(
-        { error: "User not found" },
+        { error: "User not found. Please ensure you are signed in." },
         { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -116,13 +150,16 @@ export async function POST(request: NextRequest) {
     // Use the DB wallet address (source of truth)
     const dbWalletAddress = user.walletAddress;
 
+    // Use the actual user._id from database (may differ from session userId)
+    const actualUserId = user._id;
+    
     // Check if user already has an active stake
     let stakesCollection;
     let existingStake;
     try {
       stakesCollection = await getCollection("stakes");
       existingStake = await stakesCollection.findOne({
-        userId: new ObjectId(userId),
+        userId: actualUserId,
         status: "ACTIVE",
       });
     } catch (dbError) {
@@ -223,7 +260,7 @@ export async function POST(request: NextRequest) {
 
     // Create stake record in database
     const stakeRecord = {
-      userId: new ObjectId(userId),
+      userId: actualUserId, // Use actual user._id from database
       walletAddress: dbWalletAddress, // Store DB wallet address (source of truth)
       amount: formattedAmount, // Use formatted amount (already a number)
       startTime,
@@ -253,8 +290,8 @@ export async function POST(request: NextRequest) {
 
     // Log stake creation
     console.log("📝 [STAKING] Creating stake record:", {
-      userId: userId,
-      userObjectId: new ObjectId(userId).toString(),
+      sessionUserId: userId,
+      actualUserId: actualUserId.toString(),
       walletAddress: dbWalletAddress,
       amount: formattedAmount,
       transactionHash: transactionHash,
@@ -269,7 +306,7 @@ export async function POST(request: NextRequest) {
     try {
       userStatsCollection = await getCollection("userStats");
       statsUpdateResult = await userStatsCollection.updateOne(
-        { userId: new ObjectId(userId) },
+        { userId: actualUserId }, // Use actual user._id from database
         {
           $inc: { totalStaked: stake.amount },
           $set: { updatedAt: new Date() },
@@ -279,8 +316,8 @@ export async function POST(request: NextRequest) {
 
       // Log stats update
       console.log("📊 [STAKING] Updated userStats:", {
-        userId: userId,
-        userObjectId: new ObjectId(userId).toString(),
+        sessionUserId: userId,
+        actualUserId: actualUserId.toString(),
         totalStaked: stake.amount,
         matchedCount: statsUpdateResult.matchedCount,
         modifiedCount: statsUpdateResult.modifiedCount,
@@ -352,20 +389,83 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Get user ID from NextAuth session or JWT token
-    let userId = await getUserIdFromRequest(request);
+    let userId = null;
+    try {
+      userId = await getUserIdFromRequest(request);
+    } catch (authError) {
+      console.error("[STAKING] GET: Error getting userId from request:", authError);
+    }
 
     // Fallback to JWT token from Authorization header
     if (!userId) {
-      const authHeader = request.headers.get("authorization");
-      userId = getUserIdFromJWT(authHeader);
+      try {
+        const authHeader = request.headers.get("authorization");
+        userId = getUserIdFromJWT(authHeader);
+      } catch (jwtError) {
+        console.error("[STAKING] GET: Error getting userId from JWT:", jwtError);
+      }
     }
 
     if (!userId) {
       return NextResponse.json(
         { error: "Unauthorized. Please sign in to view your stake." },
-        { status: 401 }
+        { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
+    
+    // Get user to verify they exist and get their actual _id
+    const usersCollection = await getCollection("users");
+    let user = null;
+    
+    // Try to find user by ID first
+    try {
+      user = await usersCollection.findOne({
+        _id: new ObjectId(userId),
+      });
+    } catch (idError) {
+      console.log("[STAKING] GET: Invalid ObjectId format, trying alternative lookup");
+      // If ObjectId conversion fails, try as string
+      user = await usersCollection.findOne({
+        _id: userId,
+      });
+    }
+    
+    // If still not found, try to get user from session email (fallback)
+    if (!user) {
+      const { getServerSession } = require("next-auth");
+      const { authOptions } = require("@/lib/auth-options");
+      const session = await getServerSession(authOptions);
+      
+      if (session?.user?.email) {
+        user = await usersCollection.findOne({
+          email: session.user.email,
+        });
+        
+        if (user) {
+          console.log("[STAKING] GET: Found user by email, ID mismatch:", {
+            sessionId: userId,
+            dbId: user._id.toString(),
+          });
+        }
+      }
+    }
+    
+    if (!user) {
+      console.error("[STAKING] GET: User not found in database:", {
+        userId,
+        userIdType: typeof userId,
+      });
+      return NextResponse.json(
+        { 
+          success: true,
+          stake: null,
+        },
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Use the actual user._id from database (may differ from session userId)
+    const actualUserId = user._id;
 
     // Get current stake
     const stakesCollection = await getCollection("stakes");
@@ -375,7 +475,7 @@ export async function GET(request: NextRequest) {
     // Database is the source of truth - check for ACTIVE stake
     // Only sync with on-chain if there's a mismatch (background sync)
     const stake = await stakesCollection.findOne({
-      userId: new ObjectId(userId),
+      userId: actualUserId, // Use actual user._id from database
       status: "ACTIVE",
     });
 
@@ -397,9 +497,7 @@ export async function GET(request: NextRequest) {
     // The database status is what we return to the frontend
     try {
       const { getStakeInfo } = await import("@/lib/blockchain");
-      const usersCollection = await getCollection("users");
-      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-      const walletAddress = user?.walletAddress;
+      const walletAddress = user?.walletAddress; // Use user already fetched above
 
       if (walletAddress) {
         // Fire and forget - don't wait for this
