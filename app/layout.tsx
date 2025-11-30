@@ -4,7 +4,6 @@ import { Navbar } from "@/components/navbar";
 import { AptosWalletProvider } from "@/components/aptos-wallet-provider";
 import { Providers } from "@/components/session-provider";
 import { ThemeProvider } from "@/components/theme-provider";
-import { WelcomeTokensPopup } from "@/components/welcome-tokens-popup";
 import type { Metadata } from "next";
 import { Inter, Montserrat, Poppins, Space_Grotesk } from "next/font/google";
 import type React from "react";
@@ -72,7 +71,6 @@ export default function RootLayout({
 
                 <main className="flex-1 relative z-10">{children}</main>
               </div>
-              <WelcomeTokensPopup />
             </Providers>
           </AptosWalletProvider>
         </ThemeProvider>

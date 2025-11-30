@@ -1,10 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useWallet } from "@aptos-labs/wallet-adapter-react";
-import { Wallet, CheckCircle2, Loader2 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { useWallet } from "@aptos-labs/wallet-adapter-react";
+import { CheckCircle2, Loader2, Wallet } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface ConnectWalletProps {
   onWalletConnected?: (address: string) => void;
@@ -23,12 +23,12 @@ export function ConnectWallet({
   showAddress = true,
   disabled = false,
 }: ConnectWalletProps) {
-  const { 
-    connect, 
-    disconnect, 
-    account, 
-    connected, 
-    connecting, 
+  const {
+    connect,
+    disconnect,
+    account,
+    connected,
+    connecting,
     wallet,
     wallets
   } = useWallet();
@@ -50,7 +50,7 @@ export function ConnectWallet({
     onWalletDisconnectedRef.current = onWalletDisconnected;
   }, [onWalletConnected, onWalletDisconnected]);
 
-  // Update wallet address in backend
+  // Update wallet address in backend (enforces one wallet per user)
   const updateWalletAddress = async (address: string) => {
     setIsUpdating(true);
     setError(null);
@@ -67,7 +67,17 @@ export function ConnectWallet({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to update wallet address");
+        const errorMsg = data.error || "Failed to update wallet address";
+
+        // Show user-friendly error message
+        if (errorMsg.includes("already have a wallet")) {
+          setError("You already have a wallet connected. Each user can only connect one wallet. Please disconnect your current wallet first or contact support.");
+        } else if (errorMsg.includes("already associated")) {
+          setError("This wallet is already connected to another account. Each wallet can only be connected to one user.");
+        } else {
+          setError(errorMsg);
+        }
+        throw new Error(errorMsg);
       }
 
       // Update the ref and call callback only if address changed
@@ -77,7 +87,10 @@ export function ConnectWallet({
       }
     } catch (err) {
       console.error("Error updating wallet address:", err);
-      setError(err instanceof Error ? err.message : "Failed to update wallet");
+      // Error message already set above
+      if (!error) {
+        setError(err instanceof Error ? err.message : "Failed to update wallet");
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -104,7 +117,7 @@ export function ConnectWallet({
     const previousAddress = previousWalletAddressRef.current;
     const isConnected = connected === true;
 
-    const walletStateChanged = 
+    const walletStateChanged =
       wasConnected !== connected ||
       previousAddress !== walletAddress;
 
@@ -127,14 +140,14 @@ export function ConnectWallet({
   const handleConnect = async () => {
     // Get the first available wallet
     const availableWallet = wallet || wallets.find((w: any) => w.readyState === "Installed") || wallets[0];
-    
+
     if (!availableWallet) {
       setError("No wallet available. Please install an Aptos wallet extension (Petra, Pontem, or Martian).");
       // Open wallet installation links
       window.open("https://petra.app/", "_blank");
       return;
     }
-    
+
     try {
       setError(null);
       await connect(availableWallet.name);

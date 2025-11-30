@@ -64,7 +64,32 @@ export default function Staking() {
   const [tokenBalance, setTokenBalance] = useState<string>("0");
   const [tokenSymbol, setTokenSymbol] = useState<string>("TSKULL");
 
-  const walletAddress = account?.address?.toString();
+  // Use DB wallet address instead of connected wallet
+  const [dbWalletAddress, setDbWalletAddress] = useState<string | null>(null);
+  const connectedWalletAddress = account?.address?.toString();
+
+  // Fetch user's wallet address from DB
+  useEffect(() => {
+    const fetchUserWallet = async () => {
+      try {
+        const response = await fetch("/api/user/profile", {
+          credentials: "include",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user?.walletAddress) {
+            setDbWalletAddress(data.user.walletAddress);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user wallet:", error);
+      }
+    };
+    fetchUserWallet();
+  }, []);
+
+  // Use DB wallet address, fallback to connected wallet for display only
+  const walletAddress = dbWalletAddress || connectedWalletAddress;
 
   useEffect(() => {
     fetchStakeData();
@@ -80,10 +105,11 @@ export default function Staking() {
   }, [stake]);
 
   useEffect(() => {
-    if (connected && walletAddress) {
+    // Only fetch token info if we have a wallet address (DB or connected)
+    if (walletAddress) {
       fetchTokenInfo();
     }
-  }, [connected, walletAddress]);
+  }, [walletAddress]);
 
   const fetchTokenInfo = async () => {
     if (!walletAddress) return;
@@ -248,10 +274,24 @@ export default function Staking() {
         return;
       }
 
-      // Use wallet adapter's signAndSubmitTransaction
+      // Use DB wallet address for staking (not connected wallet)
+      if (!dbWalletAddress) {
+        setStakeError("Wallet address not found. Please connect your wallet in Settings.");
+        return;
+      }
+
+      // Verify connected wallet matches DB wallet
+      if (connectedWalletAddress !== dbWalletAddress) {
+        setStakeError(
+          `Wallet mismatch. Please connect your registered wallet (${dbWalletAddress.slice(0, 6)}...${dbWalletAddress.slice(-4)})`
+        );
+        return;
+      }
+
+      // Use wallet adapter's signAndSubmitTransaction with DB wallet address
       const tx = await stakeTokensClient(
         signAndSubmitTransaction,
-        walletAddress,
+        dbWalletAddress, // Use DB wallet address
         stakeAmount,
         periodDaysNum
       );
@@ -269,7 +309,7 @@ export default function Staking() {
           credentials: "include",
           body: JSON.stringify({
             transactionHash: receipt.hash,
-            walletAddress: walletAddress,
+            walletAddress: dbWalletAddress, // Use DB wallet address
           }),
         });
 
@@ -370,7 +410,7 @@ export default function Staking() {
           credentials: "include",
           body: JSON.stringify({
             transactionHash: tx.hash,
-            walletAddress: walletAddress,
+            walletAddress: dbWalletAddress, // Use DB wallet address
           }),
         });
 

@@ -142,26 +142,83 @@ export async function distributeWelcomeTokens(
   userAddress: string,
   amount: number = 10
 ): Promise<{ success: boolean; transactionHash?: string; error?: string; method?: "mint" | "transfer" }> {
-  const ownerPrivateKey = process.env.TOKEN_OWNER_PRIVATE_KEY;
-  const treasuryPrivateKey = process.env.TREASURY_PRIVATE_KEY;
+  // Get private keys from environment, removing quotes if present
+  let ownerPrivateKey = process.env.TOKEN_OWNER_PRIVATE_KEY;
+  let treasuryPrivateKey = process.env.TREASURY_PRIVATE_KEY;
+  
+  // Debug: Log raw values (without exposing full key)
+  console.log("[TOKEN DISTRIBUTION] Raw env check:", {
+    hasOwnerKeyRaw: !!ownerPrivateKey,
+    ownerKeyRawLength: ownerPrivateKey?.length || 0,
+    ownerKeyRawPreview: ownerPrivateKey ? `${ownerPrivateKey.substring(0, 25)}...` : "none",
+  });
+  
+  // Remove quotes and whitespace if present
+  if (ownerPrivateKey) {
+    const beforeTrim = ownerPrivateKey;
+    ownerPrivateKey = ownerPrivateKey.replace(/^["'\s]+|["'\s]+$/g, "").trim();
+    // Validate it's not empty after trimming
+    if (!ownerPrivateKey || ownerPrivateKey.length === 0) {
+      console.error("[TOKEN DISTRIBUTION] Owner key became empty after trimming:", {
+        beforeLength: beforeTrim.length,
+        afterLength: 0,
+      });
+      ownerPrivateKey = undefined;
+    } else {
+      console.log("[TOKEN DISTRIBUTION] Owner key after trim:", {
+        length: ownerPrivateKey.length,
+        startsWith: ownerPrivateKey.substring(0, 20),
+      });
+    }
+  } else {
+    console.error("[TOKEN DISTRIBUTION] TOKEN_OWNER_PRIVATE_KEY not found in process.env");
+  }
+  
+  if (treasuryPrivateKey) {
+    treasuryPrivateKey = treasuryPrivateKey.replace(/^["'\s]+|["'\s]+$/g, "").trim();
+    // Validate it's not empty after trimming
+    if (!treasuryPrivateKey || treasuryPrivateKey.length === 0) {
+      treasuryPrivateKey = undefined;
+    }
+  }
 
   // Try minting first if owner key is available
   if (ownerPrivateKey) {
-    const result = await mintTokensToUser(userAddress, amount, ownerPrivateKey);
-    if (result.success) {
-      return { ...result, method: "mint" };
+    console.log("[TOKEN DISTRIBUTION] Attempting to mint tokens using owner key...");
+    try {
+      const result = await mintTokensToUser(userAddress, amount, ownerPrivateKey);
+      if (result.success) {
+        console.log("[TOKEN DISTRIBUTION] Minting successful!");
+        return { ...result, method: "mint" };
+      } else {
+        console.error("[TOKEN DISTRIBUTION] Minting failed:", result.error);
+      }
+    } catch (error) {
+      console.error("[TOKEN DISTRIBUTION] Minting exception:", error);
     }
     // If minting fails, try transfer
+  } else {
+    console.error("[TOKEN DISTRIBUTION] No owner private key available for minting");
   }
 
   // Try transferring from treasury if treasury key is available
   if (treasuryPrivateKey) {
-    const result = await transferTokensFromTreasury(userAddress, amount, treasuryPrivateKey);
-    if (result.success) {
-      return { ...result, method: "transfer" };
+    console.log("[TOKEN DISTRIBUTION] Attempting to transfer from treasury...");
+    try {
+      const result = await transferTokensFromTreasury(userAddress, amount, treasuryPrivateKey);
+      if (result.success) {
+        console.log("[TOKEN DISTRIBUTION] Transfer successful!");
+        return { ...result, method: "transfer" };
+      } else {
+        console.error("[TOKEN DISTRIBUTION] Transfer failed:", result.error);
+      }
+    } catch (error) {
+      console.error("[TOKEN DISTRIBUTION] Transfer exception:", error);
     }
   }
 
+  // If we get here, no valid key was found or all methods failed
+  console.error("[TOKEN DISTRIBUTION] All methods failed. No valid private key or transactions failed.");
   return {
     success: false,
     error: "No valid private key configured. Set TOKEN_OWNER_PRIVATE_KEY or TREASURY_PRIVATE_KEY in .env",

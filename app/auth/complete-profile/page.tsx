@@ -3,7 +3,6 @@
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { WelcomeTokensPopup } from "@/components/welcome-tokens-popup";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -270,7 +269,6 @@ export default function CompleteProfilePage() {
                 </div>
             </div>
             <Footer />
-            <WelcomeTokensPopup />
         </>
     );
 }

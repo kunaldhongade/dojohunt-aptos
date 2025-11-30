@@ -49,6 +49,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // ENFORCE ONE WALLET PER USER: Check if user already has a different wallet
+    if (user.walletAddress && user.walletAddress !== walletAddress) {
+      return NextResponse.json(
+        {
+          error:
+            "You already have a wallet connected. Each user can only connect one wallet. Please disconnect your current wallet first or contact support to change it.",
+        },
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
     // Check if wallet address is already used by another user
     const existingUser = await usersCollection.findOne({
       walletAddress: walletAddress,
@@ -59,22 +70,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "This wallet address is already associated with another account",
+            "This wallet address is already associated with another account. Each wallet can only be connected to one user.",
         },
-        { status: 409 }
+        { status: 409, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Update wallet address
-    await usersCollection.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          walletAddress: walletAddress,
-          updatedAt: new Date(),
-        },
-      }
-    );
+    // Update wallet address (only if not already set or if it's the same)
+    if (!user.walletAddress || user.walletAddress !== walletAddress) {
+      await usersCollection.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            walletAddress: walletAddress,
+            updatedAt: new Date(),
+          },
+        }
+      );
+    }
 
     return NextResponse.json({
       success: true,

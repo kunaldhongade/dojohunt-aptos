@@ -90,29 +90,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update or set user's wallet address
-    if (user.walletAddress && user.walletAddress !== walletAddress) {
+    // ENFORCE ONE WALLET PER USER: Use wallet from DB, not from request
+    // The wallet address in the request should match the DB wallet
+    if (!user.walletAddress) {
       return NextResponse.json(
         {
           error:
-            "Wallet address mismatch. Please use your registered wallet.",
+            "No wallet connected. Please connect your wallet in Settings first.",
+        },
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the wallet address matches the user's registered wallet
+    if (user.walletAddress !== walletAddress) {
+      return NextResponse.json(
+        {
+          error:
+            "Wallet address mismatch. Please use your registered wallet. Each user can only use one wallet.",
         },
         { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }
-    
-    // Update wallet address if not set
-    if (!user.walletAddress) {
-      try {
-        await usersCollection.updateOne(
-          { _id: new ObjectId(userId) },
-          { $set: { walletAddress } }
-        );
-      } catch (updateError) {
-        console.error("[STAKING] Error updating wallet address:", updateError);
-        // Don't fail the request if wallet update fails
-      }
-    }
+
+    // Use the DB wallet address (source of truth)
+    const dbWalletAddress = user.walletAddress;
 
     // Check if user already has an active stake
     let stakesCollection;
@@ -138,12 +140,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the staking transaction on blockchain
+    // Verify the staking transaction on blockchain using DB wallet address
     let verifyResult;
     try {
       verifyResult = await verifyStakeTransaction(
         transactionHash,
-        walletAddress
+        dbWalletAddress // Use DB wallet address
       );
     } catch (verifyError) {
       console.error("Error verifying stake transaction:", verifyError);
@@ -197,19 +199,32 @@ export async function POST(request: NextRequest) {
     const startTime = new Date(Number(stakeData.startTime) * 1000);
 
     // Get random challenges for this stake
-    const challengesCollection = await getCollection("challenges");
-    const challenges = await challengesCollection
-      .find({
-        isActive: true,
-        isPublished: true,
-      })
-      .limit(5)
-      .toArray();
+    let challengesCollection;
+    let challenges;
+    try {
+      challengesCollection = await getCollection("challenges");
+      challenges = await challengesCollection
+        .find({
+          isActive: true,
+          isPublished: true,
+        })
+        .limit(5)
+        .toArray();
+    } catch (dbError) {
+      console.error(
+        "[STAKING] Error accessing challenges collection:",
+        dbError
+      );
+      return NextResponse.json(
+        { error: "Database error. Please try again." },
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     // Create stake record in database
     const stakeRecord = {
       userId: new ObjectId(userId),
-      walletAddress, // Store wallet address for tracking
+      walletAddress: dbWalletAddress, // Store DB wallet address (source of truth)
       amount: formattedAmount, // Use formatted amount (already a number)
       startTime,
       endTime,
@@ -224,14 +239,23 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date(),
     };
 
-    const stakeResult_db = await stakesCollection.insertOne(stakeRecord);
+    let stakeResult_db;
+    try {
+      stakeResult_db = await stakesCollection.insertOne(stakeRecord);
+    } catch (dbError) {
+      console.error("[STAKING] Error inserting stake record:", dbError);
+      return NextResponse.json(
+        { error: "Database error. Failed to create stake record." },
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
     const stake = { ...stakeRecord, _id: stakeResult_db.insertedId };
 
     // Log stake creation
     console.log("📝 [STAKING] Creating stake record:", {
       userId: userId,
       userObjectId: new ObjectId(userId).toString(),
-      walletAddress: walletAddress,
+      walletAddress: dbWalletAddress,
       amount: formattedAmount,
       transactionHash: transactionHash,
       stakeId: stakeResult_db.insertedId.toString(),
@@ -240,25 +264,33 @@ export async function POST(request: NextRequest) {
     });
 
     // Update user stats
-    const userStatsCollection = await getCollection("userStats");
-    const statsUpdateResult = await userStatsCollection.updateOne(
-      { userId: new ObjectId(userId) },
-      {
-        $inc: { totalStaked: stake.amount },
-        $set: { updatedAt: new Date() },
-      },
-      { upsert: true } // Create if doesn't exist
-    );
+    let userStatsCollection;
+    let statsUpdateResult;
+    try {
+      userStatsCollection = await getCollection("userStats");
+      statsUpdateResult = await userStatsCollection.updateOne(
+        { userId: new ObjectId(userId) },
+        {
+          $inc: { totalStaked: stake.amount },
+          $set: { updatedAt: new Date() },
+        },
+        { upsert: true } // Create if doesn't exist
+      );
 
-    // Log stats update
-    console.log("📊 [STAKING] Updated userStats:", {
-      userId: userId,
-      userObjectId: new ObjectId(userId).toString(),
-      totalStaked: stake.amount,
-      matchedCount: statsUpdateResult.matchedCount,
-      modifiedCount: statsUpdateResult.modifiedCount,
-      upsertedId: statsUpdateResult.upsertedId?.toString(),
-    });
+      // Log stats update
+      console.log("📊 [STAKING] Updated userStats:", {
+        userId: userId,
+        userObjectId: new ObjectId(userId).toString(),
+        totalStaked: stake.amount,
+        matchedCount: statsUpdateResult.matchedCount,
+        modifiedCount: statsUpdateResult.modifiedCount,
+        upsertedId: statsUpdateResult.upsertedId?.toString(),
+      });
+    } catch (dbError) {
+      console.error("[STAKING] Error updating userStats:", dbError);
+      // Don't fail the request if stats update fails, but log it
+      // The stake was already created, so we can continue
+    }
 
     return NextResponse.json(
       {

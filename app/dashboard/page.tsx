@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { WelcomeTokensPopup } from "@/components/welcome-tokens-popup";
 
 interface Stake {
   id: string;
@@ -535,7 +534,6 @@ export default function Dashboard() {
         </div>
       </div>
       <Footer />
-      <WelcomeTokensPopup />
     </>
   );
 }
