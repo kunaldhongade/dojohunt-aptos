@@ -54,7 +54,7 @@ export default function TutorialsPage() {
       steps: [
         "Connect your wallet",
         "Approve token spending",
-        "Stake your ETH",
+        "Stake your TSKULL tokens",
         "Verify your stake"
       ]
     },
@@ -218,7 +218,7 @@ export default function TutorialsPage() {
               <div className="grid md:grid-cols-4 gap-4">
                 {[
                   { step: "1", title: "Sign Up", desc: "Create account or connect wallet" },
-                  { step: "2", title: "Stake ETH", desc: "Lock tokens to unlock challenges" },
+                  { step: "2", title: "Stake TSKULL Tokens", desc: "Lock tokens to unlock challenges" },
                   { step: "3", title: "Solve", desc: "Complete coding challenges" },
                   { step: "4", title: "Earn", desc: "Unstake and claim rewards" },
                 ].map((item, i) => (

@@ -80,7 +80,7 @@ export default function DocsPage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-white mt-1">•</span>
-                    <span>Stake 5 ETH for 5 days</span>
+                    <span>Stake 5 TSKULL tokens for 5 days</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-white mt-1">•</span>

@@ -30,7 +30,7 @@
 DojoHunt is a comprehensive coding challenge platform that allows developers to:
 
 - Solve coding challenges in JavaScript using a Monaco editor
-- Stake ETH tokens to unlock challenges
+- Stake TSKULL tokens to unlock challenges
 - Compete on leaderboards and earn achievements
 - Track progress and statistics
 

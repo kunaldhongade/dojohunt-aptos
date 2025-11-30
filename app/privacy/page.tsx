@@ -64,7 +64,7 @@ export default function PrivacyPage() {
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="text-primary mt-1">•</span>
-                    <span className="text-foreground/70"><strong>Wallet Information:</strong> Ethereum wallet addresses (when connected)</span>
+                    <span className="text-foreground/70"><strong>Wallet Information:</strong> Aptos wallet addresses (when connected)</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="text-primary mt-1">•</span>

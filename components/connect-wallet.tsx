@@ -29,7 +29,8 @@ export function ConnectWallet({
     account, 
     connected, 
     connecting, 
-    wallet 
+    wallet,
+    wallets
   } = useWallet();
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,13 +125,19 @@ export function ConnectWallet({
   }, [connected, walletAddress]);
 
   const handleConnect = async () => {
-    if (!wallet) {
-      setError("No wallet available. Please install an Aptos wallet.");
+    // Get the first available wallet
+    const availableWallet = wallet || wallets.find((w: any) => w.readyState === "Installed") || wallets[0];
+    
+    if (!availableWallet) {
+      setError("No wallet available. Please install an Aptos wallet extension (Petra, Pontem, or Martian).");
+      // Open wallet installation links
+      window.open("https://petra.app/", "_blank");
       return;
     }
     
     try {
-      await connect(wallet.name);
+      setError(null);
+      await connect(availableWallet.name);
     } catch (err) {
       console.error("Connection error:", err);
       setError(err instanceof Error ? err.message : "Failed to connect wallet");
@@ -206,21 +213,46 @@ export function ConnectWallet({
     );
   }
 
+  const availableWallet = wallet || wallets.find((w: any) => w.readyState === "Installed") || wallets[0];
+  const hasWallets = wallets.length > 0;
+
   return (
-    <Button
-      variant={variant === "outline" ? "outline" : "default"}
-      disabled={disabled}
-      onClick={handleConnect}
-      className={cn(
-        variant === "default"
-          ? "gradient-purple hover:opacity-90"
-          : "glass-strong hover:glass border-border/50 hover:border-primary/30",
-        "rounded-lg",
-        className
+    <div className="space-y-2">
+      <Button
+        variant={variant === "outline" ? "outline" : "default"}
+        disabled={disabled || !hasWallets}
+        onClick={handleConnect}
+        className={cn(
+          variant === "default"
+            ? "gradient-purple hover:opacity-90"
+            : "glass-strong hover:glass border-border/50 hover:border-primary/30",
+          "rounded-lg",
+          className
+        )}
+      >
+        <Wallet className="mr-2 h-4 w-4" />
+        {availableWallet ? `Connect ${availableWallet.name}` : "Connect Wallet"}
+      </Button>
+      {error && (
+        <p className="text-xs text-red-400">{error}</p>
       )}
-    >
-      <Wallet className="mr-2 h-4 w-4" />
-      Connect Wallet
-    </Button>
+      {!hasWallets && !error && (
+        <p className="text-xs text-foreground/60">
+          No wallet detected. Install{" "}
+          <a href="https://petra.app/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            Petra
+          </a>
+          ,{" "}
+          <a href="https://pontem.network/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            Pontem
+          </a>
+          , or{" "}
+          <a href="https://martianwallet.xyz/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            Martian
+          </a>
+          .
+        </p>
+      )}
+    </div>
   );
 }

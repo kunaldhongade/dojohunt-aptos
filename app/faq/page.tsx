@@ -31,17 +31,17 @@ const faqs: FAQItem[] = [
   {
     category: "Getting Started",
     question: "How do I get started with DojoHunt?",
-    answer: "To get started, create an account or connect your wallet, then stake ETH on Base Sepolia. Once staked, you'll unlock challenges that you need to complete within the staking period to unlock your tokens without fees."
+    answer: "To get started, create an account or connect your wallet, then stake TSKULL tokens on Aptos. Once staked, you'll unlock challenges that you need to complete within the staking period to unlock your tokens without fees."
   },
   {
     category: "Getting Started",
     question: "Do I need to pay to use DojoHunt?",
-    answer: "No, DojoHunt is free to use. You only need to stake ETH to unlock challenges. When you complete the required challenges, you can unstake your tokens without any fees."
+    answer: "No, DojoHunt is free to use. You only need to stake TSKULL tokens to unlock challenges. When you complete the required challenges, you can unstake your tokens without any fees."
   },
   {
     category: "Staking",
-    question: "How much ETH do I need to stake?",
-    answer: "The minimum stake amount is 5 ETH for a 5-day period. You must complete 5 assigned challenges within this period to unlock your stake without fees."
+    question: "How many TSKULL tokens do I need to stake?",
+    answer: "The minimum stake amount is 5 TSKULL tokens for a 5-day period. You must complete 5 assigned challenges within this period to unlock your stake without fees."
   },
   {
     category: "Staking",
@@ -50,8 +50,8 @@ const faqs: FAQItem[] = [
   },
   {
     category: "Staking",
-    question: "Is my staked ETH safe?",
-    answer: "Yes, your ETH is locked in audited smart contracts on Base Sepolia. The contracts are transparent and secure. You maintain control of your tokens throughout the staking period."
+    question: "Are my staked TSKULL tokens safe?",
+    answer: "Yes, your TSKULL tokens are locked in audited smart contracts on Aptos. The contracts are transparent and secure. You maintain control of your tokens throughout the staking period."
   },
   {
     category: "Challenges",
@@ -81,7 +81,7 @@ const faqs: FAQItem[] = [
   {
     category: "Technical",
     question: "What blockchain is DojoHunt built on?",
-    answer: "DojoHunt is built on Base Sepolia, a Layer 2 testnet. This ensures fast transactions and low gas fees while maintaining security through Ethereum's infrastructure."
+    answer: "DojoHunt is built on Aptos blockchain. This ensures fast transactions and low gas fees while maintaining security through Aptos's Move-based smart contracts."
   },
   {
     category: "Technical",

@@ -13,6 +13,7 @@ export interface User {
   avatar?: string;
   isActive: boolean;
   role: "USER" | "ADMIN";
+  hasClaimedWelcomeTokens?: boolean; // Track if user has claimed welcome tokens
   createdAt: Date;
   updatedAt: Date;
 }

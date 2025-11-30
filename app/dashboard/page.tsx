@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { WelcomeTokensPopup } from "@/components/welcome-tokens-popup";
 
 interface Stake {
   id: string;
@@ -192,7 +193,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-gradient mb-2">
-                  {stake ? `${stake.amount} ETH` : "0 ETH"}
+                  {stake ? `${stake.amount} TSKULL` : "0 TSKULL"}
                 </div>
                 <p className="text-xs text-foreground/60">
                   {stake
@@ -505,7 +506,7 @@ export default function Dashboard() {
                         <span className="text-sm text-foreground/60">
                           Amount Staked
                         </span>
-                        <span className="font-semibold text-primary">5.0 ETH</span>
+                        <span className="font-semibold text-primary">5.0 TSKULL</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-foreground/60">
@@ -519,11 +520,11 @@ export default function Dashboard() {
                         <span className="text-sm text-foreground/60">
                           Tokens Returned
                         </span>
-                        <span className="font-semibold text-primary">5.0 ETH</span>
+                        <span className="font-semibold text-primary">5.0 TSKULL</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-foreground/60">Fee</span>
-                        <span className="font-semibold text-green-400">0 ETH</span>
+                        <span className="font-semibold text-green-400">0 TSKULL</span>
                       </div>
                     </div>
                   </div>
@@ -534,6 +535,7 @@ export default function Dashboard() {
         </div>
       </div>
       <Footer />
+      <WelcomeTokensPopup />
     </>
   );
 }

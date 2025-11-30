@@ -1,15 +1,16 @@
-import { getCollection } from "@/lib/mongodb";
-import { getUserIdFromRequest } from "@/lib/auth-utils";
-import { ObjectId } from "mongodb";
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
+import { getUserIdFromRequest } from "@/lib/auth-utils";
+import { getCollection } from "@/lib/mongodb";
+import { AccountAddress } from "@aptos-labs/ts-sdk";
+import { ObjectId } from "mongodb";
+import { getServerSession } from "next-auth";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
     // Get user ID from NextAuth session
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: "Unauthorized. Please sign in." },
@@ -27,10 +28,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate Ethereum address format
-    if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+    // Validate Aptos address format
+    try {
+      AccountAddress.fromString(walletAddress);
+    } catch (error) {
       return NextResponse.json(
-        { error: "Invalid Ethereum wallet address format" },
+        { error: "Invalid Aptos wallet address format" },
         { status: 400 }
       );
     }
@@ -43,10 +46,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Check if wallet address is already used by another user
@@ -57,7 +57,10 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "This wallet address is already associated with another account" },
+        {
+          error:
+            "This wallet address is already associated with another account",
+        },
         { status: 409 }
       );
     }
@@ -86,4 +89,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

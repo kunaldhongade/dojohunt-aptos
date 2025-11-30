@@ -4,9 +4,35 @@ import { Account, AccountAddress, U64 } from "@aptos-labs/ts-sdk";
 // Aptos Network Configuration
 export const APTOS_NETWORK = (process.env.NEXT_PUBLIC_APTOS_NETWORK || "testnet") as Network;
 
-// Get Aptos client
+/**
+ * Get API key for the current network
+ * Supports network-specific keys: APTOS_API_KEY_DEVNET, APTOS_API_KEY_TESTNET, APTOS_API_KEY_MAINNET
+ * Falls back to APTOS_API_KEY if network-specific key is not set
+ */
+function getApiKeyForCurrentNetwork(): string | undefined {
+  const network = APTOS_NETWORK.toString().toLowerCase();
+  
+  if (network === "devnet") {
+    return process.env.APTOS_API_KEY_DEVNET || process.env.APTOS_API_KEY;
+  } else if (network === "testnet") {
+    return process.env.APTOS_API_KEY_TESTNET || process.env.APTOS_API_KEY;
+  } else if (network === "mainnet") {
+    return process.env.APTOS_API_KEY_MAINNET || process.env.APTOS_API_KEY;
+  } else {
+    return process.env.APTOS_API_KEY;
+  }
+}
+
+// Get Aptos client with API key support (to avoid rate limits)
 export function getAptosClient(): Aptos {
-  const config = new AptosConfig({ network: APTOS_NETWORK });
+  const apiKey = getApiKeyForCurrentNetwork();
+  
+  const config = new AptosConfig({
+    network: APTOS_NETWORK,
+    // Add API key if available (helps avoid rate limits)
+    ...(apiKey && { clientConfig: { API_KEY: apiKey } }),
+  });
+  
   return new Aptos(config);
 }
 
@@ -81,26 +107,38 @@ export async function verifyStakeTransaction(
     }
 
     // Parse transaction to get stake event data
-    // In Aptos, we need to look at the transaction events
-    const events = transaction.events || [];
+    // Extract function arguments from transaction payload
+    let amount = "0";
+    let periodSeconds = 5 * 24 * 60 * 60; // Default to 5 days if not found
     
-    // Find stake-related events (you may need to adjust based on your event structure)
-    // For now, we'll extract data from the transaction itself
+    // Try to extract from transaction payload
+    if (transaction.payload && typeof transaction.payload === 'object') {
+      const payload = transaction.payload as any;
+      
+      // Check if it's a function call
+      if (payload.function && payload.arguments) {
+        // Arguments: [amount, period_seconds]
+        if (Array.isArray(payload.arguments) && payload.arguments.length >= 2) {
+          amount = payload.arguments[0]?.toString() || "0";
+          periodSeconds = Number(payload.arguments[1]) || periodSeconds;
+        }
+      }
+    }
+    
     const timestamp = transaction.timestamp;
-    
-    // Calculate end time (5 days from start)
     const startTime = Number(timestamp) / 1000000; // Convert to seconds
-    const endTime = startTime + (5 * 24 * 60 * 60); // 5 days
+    const endTime = startTime + periodSeconds;
 
     return {
       success: true,
       data: {
         transactionHash,
         blockNumber: transaction.version,
-        amount: "0", // Extract from transaction payload if available
+        amount,
         formattedAmount: "0",
         startTime: BigInt(Math.floor(startTime)),
         endTime: BigInt(Math.floor(endTime)),
+        periodSeconds: BigInt(periodSeconds),
       },
     };
   } catch (error) {

@@ -47,7 +47,7 @@ interface Stake {
 }
 
 export default function Staking() {
-  const { account, connected, connect, wallet, signAndSubmitTransaction } = useWallet();
+  const { account, connected, connect, wallet, signAndSubmitTransaction, wallets } = useWallet();
   const [stakeAmount, setStakeAmount] = useState("0");
   const [stakingPeriod, setStakingPeriod] = useState("5");
   const [isStaking, setIsStaking] = useState(false);
@@ -58,16 +58,26 @@ export default function Staking() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stakeError, setStakeError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("stake");
 
   // Token info
   const [tokenBalance, setTokenBalance] = useState<string>("0");
-  const [tokenSymbol, setTokenSymbol] = useState<string>("DOJO");
+  const [tokenSymbol, setTokenSymbol] = useState<string>("TSKULL");
 
   const walletAddress = account?.address?.toString();
 
   useEffect(() => {
     fetchStakeData();
   }, []);
+
+  // Update active tab when stake changes
+  useEffect(() => {
+    if (stake) {
+      setActiveTab("unstake");
+    } else {
+      setActiveTab("stake");
+    }
+  }, [stake]);
 
   useEffect(() => {
     if (connected && walletAddress) {
@@ -81,15 +91,37 @@ export default function Staking() {
     try {
       const aptos = getAptosClient();
 
-      // Get token info
-      const tokenInfo = await getTokenInfoClient(aptos);
-      setTokenSymbol(tokenInfo.symbol);
+      // Get token info (with fallback) - run in parallel with balance
+      const tokenInfoPromise = getTokenInfoClient(aptos).catch((err) => {
+        // Only log unexpected errors
+        const errorMsg = err?.message || String(err || "");
+        if (!errorMsg.includes("not found") && !errorMsg.includes("split")) {
+          console.error("Error fetching token info:", errorMsg);
+        }
+        return { symbol: "TSKULL", name: "TSKULL", decimals: 8 }; // Fallback with correct decimals
+      });
 
-      // Get token balance
-      const balance = await getTokenBalanceClient(aptos, walletAddress);
+      // Get token balance using balance.ts (works for fungible assets)
+      const balancePromise = getTokenBalanceClient(aptos, walletAddress).catch((err) => {
+        // Only log unexpected errors
+        const errorMsg = err?.message || String(err || "");
+        if (!errorMsg.includes("not found") && !errorMsg.includes("split")) {
+          console.error("Error fetching token balance:", errorMsg);
+        }
+        return { balance: "0", rawBalance: "0" }; // Fallback
+      });
+
+      // Wait for both to complete
+      const [tokenInfo, balance] = await Promise.all([tokenInfoPromise, balancePromise]);
+
+      // Update state
+      setTokenSymbol(tokenInfo.symbol);
       setTokenBalance(balance.balance);
     } catch (err) {
-      console.error("Error fetching token info:", err);
+      console.error("Error in fetchTokenInfo:", err);
+      // Set fallback values
+      setTokenSymbol("TSKULL");
+      setTokenBalance("0");
     }
   };
 
@@ -102,23 +134,60 @@ export default function Staking() {
       }
       setError(null);
 
-      const response = await fetch("/api/staking/stake", {
+      // Add cache-busting parameter to ensure fresh data
+      const cacheBuster = isRefresh ? `?t=${Date.now()}` : "";
+      const response = await fetch(`/api/staking/stake${cacheBuster}`, {
         method: "GET",
         credentials: "include", // Include cookies for session
+        cache: "no-store", // Prevent caching
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setStake(data.stake);
-        setError(null); // Clear any previous errors
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            const data = await response.json();
+            // Explicitly set stake to null if API returns null
+            setStake(data.stake || null);
+            setError(null); // Clear any previous errors
+
+            // Log for debugging
+            if (isRefresh) {
+              console.log("Stake data refreshed:", data.stake ? "Active stake found" : "No active stake");
+            }
+          } catch (parseError) {
+            console.error("Error parsing stake data response:", parseError);
+            setError("Failed to parse stake data");
+            setStake(null);
+          }
+        } else {
+          const text = await response.text();
+          console.error("Non-JSON response from stake API:", text);
+          setError("Invalid response from server");
+          setStake(null);
+        }
       } else if (response.status === 401) {
         setError("Please sign in to view your stake information");
+        setStake(null);
       } else {
-        setError("Failed to load stake data");
+        // Try to get error message from JSON response
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            const errorData = await response.json();
+            setError(errorData.error || "Failed to load stake data");
+          } catch {
+            setError("Failed to load stake data");
+          }
+        } else {
+          setError("Failed to load stake data");
+        }
+        setStake(null);
       }
     } catch (err) {
       console.error("Error fetching stake data:", err);
       setError("Failed to load stake data");
+      setStake(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -142,16 +211,30 @@ export default function Staking() {
     }
 
     const stakeAmountNum = Number.parseFloat(stakeAmount);
+    const periodDaysNum = Number.parseInt(stakingPeriod, 10);
 
     if (stakeAmountNum <= 0) {
       setStakeError(`Stake amount must be greater than 0`);
       return;
     }
 
-    if (stakeAmountNum > Number.parseFloat(tokenBalance)) {
+    // Check balance with more precision
+    const balanceNum = Number.parseFloat(tokenBalance);
+    if (isNaN(balanceNum) || balanceNum < stakeAmountNum) {
       setStakeError(
-        `Insufficient token balance. You have ${tokenBalance} ${tokenSymbol}`
+        `Insufficient token balance. You have ${tokenBalance} ${tokenSymbol}, but trying to stake ${stakeAmount} ${tokenSymbol}`
       );
+      return;
+    }
+
+    // Additional check: ensure we have at least a small buffer for gas
+    if (balanceNum < stakeAmountNum + 0.01) {
+      console.warn("Balance is very close to staking amount, might fail due to gas fees");
+    }
+
+    // Validate staking period (1-90 days)
+    if (periodDaysNum < 1 || periodDaysNum > 90) {
+      setStakeError(`Staking period must be between 1 and 90 days`);
       return;
     }
 
@@ -169,7 +252,8 @@ export default function Staking() {
       const tx = await stakeTokensClient(
         signAndSubmitTransaction,
         walletAddress,
-        stakeAmount
+        stakeAmount,
+        periodDaysNum
       );
 
       // Wait for transaction
@@ -190,29 +274,51 @@ export default function Staking() {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setStake(data.stake);
-          setIsSuccess(true);
-          // Refresh stake data
-          await fetchStakeData();
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await response.json();
+            setStake(data.stake);
+            setIsSuccess(true);
+            // Refresh stake data
+            await fetchStakeData();
+          } else {
+            const text = await response.text();
+            console.error("Non-JSON response from staking API:", text);
+            setStakeError("Invalid response from server. Please try again.");
+          }
         } else {
-          const errorData = await response.json();
-          setStakeError(
-            errorData.error || "Failed to verify staking transaction"
-          );
+          // Try to parse JSON error, but handle HTML errors gracefully
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            try {
+              const errorData = await response.json();
+              setStakeError(
+                errorData.error || "Failed to verify staking transaction"
+              );
+            } catch (parseError) {
+              console.error("Error parsing JSON error response:", parseError);
+              setStakeError(`Staking failed: ${response.status} ${response.statusText}`);
+            }
+          } else {
+            const text = await response.text();
+            console.error("Non-JSON error response:", text);
+            setStakeError(`Staking failed: ${response.status} ${response.statusText}`);
+          }
         }
       } else {
         setStakeError("Transaction failed");
       }
     } catch (err: any) {
       console.error("Staking error:", err);
-      if (err.message?.includes("rejected") || err.message?.includes("User rejected")) {
+      const errorMessage = err?.message || String(err || "");
+
+      if (errorMessage.includes("rejected") || errorMessage.includes("User rejected")) {
         setStakeError("Transaction was rejected");
-      } else if (err.message?.includes("insufficient")) {
-        setStakeError(err.message || "Insufficient token balance");
+      } else if (errorMessage.includes("insufficient")) {
+        setStakeError(errorMessage || "Insufficient token balance");
       } else {
         setStakeError(
-          err.message || "Failed to stake tokens. Please try again."
+          errorMessage || "Failed to stake tokens. Please try again."
         );
       }
     } finally {
@@ -220,7 +326,6 @@ export default function Staking() {
     }
   };
 
-  // Note: Aptos doesn't require approval like Ethereum - tokens are transferred directly
   // This function is kept for compatibility but does nothing
   const handleApprove = async () => {
     setStakeError("Aptos doesn't require token approval. You can stake directly.");
@@ -256,11 +361,72 @@ export default function Staking() {
       const receipt = await tx.wait();
 
       if (receipt && receipt.success !== false) {
-        // Transaction successful
-        setIsSuccess(true);
-        setStake(null);
-        // Refresh stake data
-        await fetchStakeData();
+        // Verify and update unstake transaction on backend
+        const response = await fetch("/api/staking/unstake", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            transactionHash: tx.hash,
+            walletAddress: walletAddress,
+          }),
+        });
+
+        // Check content-type before parsing
+        const contentType = response.headers.get("content-type");
+
+        if (response.ok) {
+          if (contentType && contentType.includes("application/json")) {
+            try {
+              const responseData = await response.json();
+              console.log("Unstake response:", responseData);
+
+              // Transaction successful - clear stake immediately
+              setIsSuccess(true);
+              setStake(null);
+              setActiveTab("stake"); // Switch to stake tab
+
+              // Wait a bit for database to update, then refresh multiple times to ensure sync
+              await new Promise(resolve => setTimeout(resolve, 500));
+
+              // Force refresh stake data (bypass cache) - try multiple times
+              await fetchStakeData(true);
+
+              // Double-check after another delay
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              await fetchStakeData(true);
+
+              // Refresh token balance
+              await fetchTokenInfo();
+            } catch (parseError) {
+              console.error("Error parsing unstake response:", parseError);
+              setStakeError("Invalid response from server. Please refresh the page.");
+            }
+          } else {
+            const text = await response.text();
+            console.error("Non-JSON response from unstake API:", text);
+            setStakeError("Invalid response from server. Please try again.");
+          }
+        } else {
+          // Handle error response
+          if (contentType && contentType.includes("application/json")) {
+            try {
+              const errorData = await response.json();
+              setStakeError(
+                errorData.error || "Failed to verify unstaking transaction"
+              );
+            } catch (parseError) {
+              console.error("Error parsing JSON error response:", parseError);
+              setStakeError(`Unstaking failed: ${response.status} ${response.statusText}`);
+            }
+          } else {
+            const text = await response.text();
+            console.error("Non-JSON error response:", text);
+            setStakeError(`Unstaking failed: ${response.status} ${response.statusText}`);
+          }
+        }
       } else {
         setStakeError("Transaction failed");
       }
@@ -385,7 +551,7 @@ export default function Staking() {
                     <div>
                       <h3 className="font-semibold mb-1">Stake Your Tokens</h3>
                       <p className="text-sm text-foreground/70">
-                        Stake 5 ETH tokens for a period of 5 days to unlock a
+                        Stake TSKULL tokens for a customizable period (1-90 days) to unlock a
                         set of 5 coding challenges.
                       </p>
                     </div>
@@ -422,7 +588,7 @@ export default function Staking() {
                 <Info className="h-4 w-4 text-primary" />
                 <AlertTitle className="text-foreground">Important Information</AlertTitle>
                 <AlertDescription className="text-foreground/70">
-                  Make sure your wallet is connected and has sufficient ETH
+                  Make sure your wallet is connected and has sufficient TSKULL tokens
                   balance before staking. The staking contract is audited and
                   secure.
                 </AlertDescription>
@@ -432,7 +598,8 @@ export default function Staking() {
             {/* Staking Tabs */}
             <div className="lg:col-span-2">
               <Tabs
-                defaultValue={stake ? "unstake" : "stake"}
+                value={activeTab}
+                onValueChange={setActiveTab}
                 className="w-full"
               >
                 <TabsList className="glass-strong border-border/50 rounded-xl p-1 mb-6">
@@ -479,7 +646,14 @@ export default function Staking() {
                               </AlertDescription>
                               <Button
                                 className="mt-3 gradient-purple hover:opacity-90 rounded-xl shadow-lg shadow-primary/30"
-                                onClick={() => wallet && connect(wallet.name)}
+                                onClick={async () => {
+                                  const availableWallet = wallet || wallets.find((w: any) => w.readyState === "Installed") || wallets[0];
+                                  if (availableWallet) {
+                                    await connect(availableWallet.name);
+                                  } else {
+                                    alert("No wallet detected. Please install an Aptos wallet extension.");
+                                  }
+                                }}
                                 size="sm"
                               >
                                 Connect Wallet
@@ -541,14 +715,14 @@ export default function Staking() {
                                 type="number"
                                 value={stakingPeriod}
                                 onChange={(e) => setStakingPeriod(e.target.value)}
-                                min="5"
+                                min="1"
+                                max="90"
                                 step="1"
                                 disabled={!!stake}
                                 className="glass-light border-border/30 rounded-xl h-12 focus:border-primary"
                               />
                               <p className="text-xs text-foreground/60">
-                                Minimum period: 5 days (Note: Currently fixed at 5
-                                days in the contract)
+                                Period range: 1-90 days (you can choose any period within this range)
                               </p>
                             </div>
                             <div className="glass-light border-border/30 p-4 rounded-xl">

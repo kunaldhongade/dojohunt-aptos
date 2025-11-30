@@ -3,7 +3,8 @@ import { ObjectId } from "mongodb";
 export interface Stake {
   _id?: ObjectId;
   userId: ObjectId;
-  amount: number; // ETH amount
+  walletAddress?: string; // Wallet address used for this stake
+  amount: number; // TSKULL tokens amount
   startTime: Date;
   endTime: Date;
   challengesRequired: number;

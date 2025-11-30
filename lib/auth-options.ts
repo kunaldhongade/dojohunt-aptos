@@ -8,6 +8,7 @@ declare module "next-auth" {
     user: {
       id: string;
       role: string;
+      profileComplete?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -21,6 +22,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     role: string;
     id: string;
+    profileComplete?: boolean;
   }
 }
 
@@ -35,11 +37,21 @@ export const authOptions: AuthOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.role = user.role;
         token.id = user.id;
       }
+      
+      // Check if profile is complete (on sign in or when session is updated)
+      if (account?.provider === "google" || trigger === "update") {
+        const usersCollection = await getCollection("users");
+        const dbUser = await usersCollection.findOne({
+          email: token.email as string,
+        });
+        token.profileComplete = dbUser?.username ? true : false;
+      }
+      
       return token;
     },
 
@@ -47,6 +59,7 @@ export const authOptions: AuthOptions = {
       if (token) {
         session.user.role = token.role;
         session.user.id = token.id;
+        (session.user as any).profileComplete = token.profileComplete ?? true;
       }
       return session;
     },
@@ -61,12 +74,14 @@ export const authOptions: AuthOptions = {
         });
 
         if (!existingUser) {
+          // Create new user without username - will need to complete profile
           await usersCollection.insertOne({
             email: user.email!,
             name: user.name!,
             image: user.image!,
             role: "USER",
             isActive: true,
+            profileComplete: false, // Mark as incomplete
             createdAt: new Date(),
             updatedAt: new Date(),
           });

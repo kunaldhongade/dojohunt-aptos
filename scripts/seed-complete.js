@@ -424,7 +424,7 @@ A subarray is a contiguous part of an array.`,
       {
         key: "DEFAULT_STAKE_AMOUNT",
         value: "5.0",
-        description: "Default ETH amount for staking",
+        description: "Default Token amount for staking",
         updatedAt: new Date(),
       },
       {

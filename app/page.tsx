@@ -254,7 +254,7 @@ export default function Home() {
                 className="text-lg leading-relaxed"
                 style={{ color: "#ECECEC" }}
               >
-                Your ETH is locked in audited smart contracts. Complete
+                Your TSKULL tokens are locked in audited smart contracts. Complete
                 challenges to unlock—no middlemen, no fees.
               </p>
             </div>
@@ -555,7 +555,7 @@ export default function Home() {
                       className="text-sm"
                       style={{ color: "#ECECEC", opacity: 0.7 }}
                     >
-                      Stake ETH, unlock rewards
+                      Stake TSKULL tokens, unlock rewards
                     </div>
                   </div>
                 </div>

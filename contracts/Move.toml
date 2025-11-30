@@ -3,7 +3,7 @@ name = "dojohunt"
 version = "1.0.0"
 
 [addresses]
-dojohunt = "_"
+dojohunt = "0xca10b0176c34f9a8315589ff977645e04497814e9753d21f7d7e7c3d83aa7b57"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"

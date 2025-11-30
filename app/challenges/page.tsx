@@ -87,11 +87,11 @@ export default function Challenges() {
     const matchesDifficulty =
       difficultyFilter === "all" ||
       (challenge.difficulty?.toLowerCase() || "") ===
-        difficultyFilter.toLowerCase();
+      difficultyFilter.toLowerCase();
     const matchesCategory =
       categoryFilter === "all" ||
       (challenge.category?.toLowerCase() || "") ===
-        categoryFilter.toLowerCase();
+      categoryFilter.toLowerCase();
 
     return matchesSearch && matchesDifficulty && matchesCategory;
   });
@@ -116,13 +116,13 @@ export default function Challenges() {
     <>
       <Navbar />
       <div
-        className="min-h-screen pt-20"
+        className="min-h-screen pt-1"
         style={{ backgroundColor: "#0B0121" }}
       >
         {/* Hero Section */}
         <div className="relative py-12 px-4 sm:px-6 lg:px-8 mb-8">
           <div className="container mx-auto max-w-7xl">
-            <div className="text-center space-y-4 animate-fade-in-up">
+            {/* <div className="text-center space-y-4 animate-fade-in-up">
               <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full border border-white/20 mb-4 bg-white/10">
                 <Sparkles className="h-4 w-4 text-white" />
                 <span className="text-sm font-medium text-white font-montserrat">
@@ -130,21 +130,21 @@ export default function Challenges() {
                 </span>
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-montserrat font-bold uppercase">
-                <span className="block bg-gradient-to-r from-white via-white/95 to-white/85 bg-clip-text text-transparent">
+                 <span className="block bg-gradient-to-r from-white via-white/95 to-white/85 bg-clip-text text-transparent">
                   Master Your Skills
                 </span>
                 <br />
                 <span className="block bg-gradient-to-r from-white via-white/95 to-white/85 bg-clip-text text-transparent">
                   One Challenge at a Time
-                </span>
-              </h1>
-              <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto font-montserrat">
-                Solve coding challenges while staking tokens. Complete
-                challenges to earn rewards and climb the leaderboard.
-              </p>
-            </div>
+                </span> 
+          </h1>
+          <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto font-montserrat">
+            Solve coding challenges while staking tokens. Complete
+            challenges to earn rewards and climb the leaderboard.
+          </p>
+        </div> */}
           </div>
-        </div>
+        </div >
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pb-12">
           {/* Filters */}
@@ -217,11 +217,10 @@ export default function Challenges() {
                 {filteredChallenges.map((challenge, index) => (
                   <Card
                     key={challenge.id}
-                    className={`${
-                      challenge.isCompleted
-                        ? "border-green-500/30 bg-green-500/5 hover:border-green-500/50"
-                        : "border-white/10 hover:border-white/30"
-                    } bg-white/5 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/20 group animate-fade-in-up`}
+                    className={`${challenge.isCompleted
+                      ? "border-green-500/30 bg-green-500/5 hover:border-green-500/50"
+                      : "border-white/10 hover:border-white/30"
+                      } bg-white/5 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/20 group animate-fade-in-up`}
                     style={{ animationDelay: `${0.3 + index * 0.05}s` }}
                   >
                     <CardHeader className="pb-3">
@@ -307,7 +306,7 @@ export default function Challenges() {
         </div>
 
         <Footer />
-      </div>
+      </div >
     </>
   );
 }

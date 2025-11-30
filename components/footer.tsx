@@ -18,7 +18,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm text-white/70 leading-relaxed font-montserrat">
-              Challenge yourself with coding problems while staking Ethereum
+              Challenge yourself with coding problems while staking On Aptos
               tokens. Complete challenges to earn rewards.
             </p>
           </div>

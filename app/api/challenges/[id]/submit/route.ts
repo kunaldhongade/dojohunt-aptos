@@ -86,6 +86,16 @@ export async function POST(
     );
     const submission = { ...submissionData, _id: submissionResult.insertedId };
 
+    // Log submission creation
+    console.log("📝 [SUBMISSION] Creating submission record:", {
+      userId: userId,
+      userObjectId: new ObjectId(userId).toString(),
+      challengeId: id,
+      challengeObjectId: new ObjectId(id).toString(),
+      submissionId: submissionResult.insertedId.toString(),
+      status: "PENDING",
+    });
+
     try {
       // Execute code
       const testCases = challenge.testCases as any[];
@@ -122,7 +132,23 @@ export async function POST(
 
       // If successful, update user stats and check stake completion
       if (executionResult.success) {
+        console.log("✅ [SUBMISSION] Submission accepted:", {
+          userId: userId,
+          userObjectId: new ObjectId(userId).toString(),
+          challengeId: id,
+          challengeObjectId: new ObjectId(id).toString(),
+          submissionId: submission._id.toString(),
+          score: score,
+          points: challenge.points,
+        });
         await handleSuccessfulSubmission(userId, id, challenge.points);
+      } else {
+        console.log("❌ [SUBMISSION] Submission rejected:", {
+          userId: userId,
+          challengeId: id,
+          submissionId: submission._id.toString(),
+          status: status,
+        });
       }
 
       return NextResponse.json({
@@ -177,7 +203,7 @@ async function handleSuccessfulSubmission(
   const userIdObj = new ObjectId(userId);
 
   // Update user stats
-  await userStatsCollection.updateOne(
+  const statsUpdateResult = await userStatsCollection.updateOne(
     { userId: userIdObj },
     {
       $inc: {
@@ -188,8 +214,19 @@ async function handleSuccessfulSubmission(
         lastActiveAt: new Date(),
         updatedAt: new Date(),
       },
-    }
+    },
+    { upsert: true } // Create if doesn't exist
   );
+
+  console.log("📊 [SUBMISSION] Updated userStats:", {
+    userId: userId,
+    userObjectId: userIdObj.toString(),
+    challengeId: challengeId,
+    pointsAdded: points,
+    matchedCount: statsUpdateResult.matchedCount,
+    modifiedCount: statsUpdateResult.modifiedCount,
+    upsertedId: statsUpdateResult.upsertedId?.toString(),
+  });
 
   // Recalculate average score
   const userStats = await userStatsCollection.findOne({

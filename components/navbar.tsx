@@ -103,7 +103,7 @@ export function Navbar({
                   {[
                     { href: "/challenges", label: "Challenges" },
                     { href: "/leaderboard", label: "Leaderboard" },
-                    { href: "/docs", label: "Docs" },
+                    { href: "/staking", label: "Staking" },
                   ].map((item) => (
                     <Link
                       key={item.href}
@@ -245,7 +245,7 @@ export function Navbar({
               {[
                 { href: "/challenges", label: "Challenges" },
                 { href: "/leaderboard", label: "Leaderboard" },
-                { href: "/docs", label: "Docs" },
+                { href: "/staking", label: "Staking" },
               ].map((item) => (
                 <Link
                   key={item.href}
